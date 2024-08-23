@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
 
-function FileUploadForm() {
+function FileUploadForm({ addEmployees }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -19,7 +21,7 @@ function FileUploadForm() {
     }
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     
     if (!file) {
@@ -27,8 +29,30 @@ function FileUploadForm() {
       return;
     }
 
-    // Handle the file upload logic here
-    console.log('File uploaded:', file);
+    setUploading(true);
+    setError('');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:4000/employees', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('File upload failed');
+      }
+
+      const result = await response.json();
+      addEmployees(result?.employees);
+      console.log('Upload successful:', result?.employees);
+    } catch (error) {
+      setError('Error uploading file: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -66,8 +90,21 @@ function FileUploadForm() {
         </Typography>
       )}
 
-      <Button type="submit" variant="contained" color="primary">
-        Submit
+      <Button type="submit" variant="contained" color="primary" disabled={uploading} sx={{ position: 'relative' }}>
+        {uploading && (
+          <CircularProgress
+            size={24}
+            sx={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              marginLeft: '-12px',
+              marginTop: '-12px',
+              color: 'white',
+            }}
+          />
+        )}
+         Submit
       </Button>
     </Box>
   );
